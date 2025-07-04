@@ -7,7 +7,6 @@ import CartSidebar from './components/cart/CartSidebar';
 import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
 import ProductPage from './pages/ProductPage';
-import CategoriesPage from './pages/CategoriesPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AdminPanel from './pages/AdminPanel';
 import LoginPage from './pages/LoginPage';
@@ -55,7 +54,6 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/product/:id" element={<ProductPage />} />
-            <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
@@ -82,8 +80,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Placeholder routes for other pages */}
-            <Route path="/track" element={<div className="min-h-screen flex items-center justify-center"><h1 className="text-2xl font-bold">Order Tracking - Coming Soon</h1></div>} />
           </Routes>
         </main>
         <Footer />

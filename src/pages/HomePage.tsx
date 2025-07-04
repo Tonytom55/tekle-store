@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Truck, Shield, Headphones } from 'lucide-react';
 import ProductCard from '../components/common/ProductCard';
 import { useProductStore } from '../stores/productStore';
-import { categories } from '../data/products';
 
 export default function HomePage() {
   const { products, fetchProducts } = useProductStore();
@@ -11,9 +10,6 @@ export default function HomePage() {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-
-  const featuredProducts = products.slice(0, 6);
-  const newArrivals = products.slice(3, 6);
 
   return (
     <div className="min-h-screen">
@@ -33,7 +29,7 @@ export default function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link
-                  to="/categories"
+                  to="/products"
                   className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Shop Now
@@ -81,40 +77,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Shop by Category</h2>
-            <p className="text-lg text-gray-600">Explore our wide range of product categories</p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <Link
-                key={category.id}
-                to={`/products?category=${encodeURIComponent(category.name)}`}
-                className="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <div className="aspect-square">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-4 left-4 text-white">
-                  <h3 className="text-xl font-semibold mb-1">{category.name}</h3>
-                  <p className="text-sm opacity-90">{category.productCount} products</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* All Products Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-12">
             <div>
@@ -129,11 +93,18 @@ export default function HomePage() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {products.slice(0, 8).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          
+          {products.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">No products available yet. Please check back later!</p>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {products.slice(0, 8).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
