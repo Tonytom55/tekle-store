@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, Upload, Plus, Minus } from 'lucide-react';
+import { X, Upload, Plus, Minus, Image as ImageIcon } from 'lucide-react';
 import { useProductStore } from '../../stores/productStore';
 import { categories } from '../../data/products';
 import toast from 'react-hot-toast';
@@ -25,6 +25,17 @@ interface ProductForm {
   specifications: { key: string; value: string }[];
 }
 
+const defaultCategories = [
+  'Electronics',
+  'Fashion',
+  'Home & Garden',
+  'Sports & Outdoors',
+  'Beauty & Health',
+  'Books & Media',
+  'Automotive',
+  'Toys & Games'
+];
+
 export default function AddOrEditProductModal({ isOpen, onClose, product }: AddProductModalProps) {
   const { addProduct, updateProduct } = useProductStore();
   const [specifications, setSpecifications] = useState<{ key: string; value: string }[]>([
@@ -33,6 +44,7 @@ export default function AddOrEditProductModal({ isOpen, onClose, product }: AddP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ProductForm>();
 
@@ -78,40 +90,83 @@ export default function AddOrEditProductModal({ isOpen, onClose, product }: AddP
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImageFiles(Array.from(e.target.files));
+      const files = Array.from(e.target.files);
+      
+      // Validate file types
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+      
+      if (invalidFiles.length > 0) {
+        toast.error('Please select only JPEG, PNG, or WebP images');
+        return;
+      }
+      
+      // Validate file sizes (max 5MB each)
+      const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        toast.error('Each image must be less than 5MB');
+        return;
+      }
+      
+      setImageFiles(files);
     }
+  };
+
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress(((i + 1) / files.length) * 100);
+      
+      try {
+        // Create unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`Failed to upload ${file.name}: ${uploadError.message}`);
+        }
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+          
+        if (!publicUrlData.publicUrl) {
+          throw new Error(`Failed to get public URL for ${file.name}`);
+        }
+        
+        uploadedUrls.push(publicUrlData.publicUrl);
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+      }
+    }
+    
+    setUploadProgress(0);
+    return uploadedUrls;
   };
 
   const onSubmit = async (data: ProductForm) => {
     setIsSubmitting(true);
+    
     try {
       let finalImageUrls: string[] = [...existingImages];
 
       // Upload new images if any
       if (imageFiles.length > 0) {
-        const uploadedUrls: string[] = [];
-        
-        for (const file of imageFiles) {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('product-images')
-            .upload(fileName, file);
-            
-          if (uploadError) {
-            toast.error('Failed to upload image: ' + uploadError.message);
-            setIsSubmitting(false);
-            return;
-          }
-          
-          const { data: publicUrlData } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(fileName);
-            
-          uploadedUrls.push(publicUrlData.publicUrl);
-        }
-        
+        toast.info('Uploading images...');
+        const uploadedUrls = await uploadImages(imageFiles);
         finalImageUrls = [...uploadedUrls];
       }
 
@@ -162,10 +217,12 @@ export default function AddOrEditProductModal({ isOpen, onClose, product }: AddP
       } else {
         toast.error(product ? 'Failed to update product. Please try again.' : 'Failed to add product. Please try again.');
       }
-    } catch (error) {
-      toast.error('An error occurred while saving the product.');
+    } catch (error: any) {
+      console.error('Error saving product:', error);
+      toast.error(`Error: ${error.message || 'Failed to save product'}`);
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -296,9 +353,9 @@ export default function AddOrEditProductModal({ isOpen, onClose, product }: AddP
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Select Category</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
+                {defaultCategories.map(category => (
+                  <option key={category} value={category}>
+                    {category}
                   </option>
                 ))}
               </select>
@@ -341,16 +398,35 @@ export default function AddOrEditProductModal({ isOpen, onClose, product }: AddP
           {/* Images */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Product Images *
+              Product Images * (JPEG, PNG, WebP - Max 5MB each)
             </label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageFileChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="text-sm text-gray-500 mt-1">Upload images from your device gallery</p>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                multiple
+                onChange={handleImageFileChange}
+                className="hidden"
+                id="image-upload"
+              />
+              <label htmlFor="image-upload" className="cursor-pointer">
+                <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">Click to upload images or drag and drop</p>
+                <p className="text-sm text-gray-500">Supports JPEG, PNG, WebP (Max 5MB each)</p>
+              </label>
+            </div>
+            
+            {uploadProgress > 0 && (
+              <div className="mt-3">
+                <div className="bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 mt-1">Uploading... {Math.round(uploadProgress)}%</p>
+              </div>
+            )}
             
             {/* Preview existing images */}
             {existingImages.length > 0 && (
@@ -358,7 +434,7 @@ export default function AddOrEditProductModal({ isOpen, onClose, product }: AddP
                 <p className="text-sm font-medium text-gray-700 mb-2">Current Images:</p>
                 <div className="flex flex-wrap gap-2">
                   {existingImages.map((url, idx) => (
-                    <div key={idx} className="w-20 h-20 bg-gray-100 rounded overflow-hidden">
+                    <div key={idx} className="w-20 h-20 bg-gray-100 rounded overflow-hidden border">
                       <img
                         src={url}
                         alt="Current"
@@ -373,10 +449,10 @@ export default function AddOrEditProductModal({ isOpen, onClose, product }: AddP
             {/* Preview new images */}
             {imageFiles.length > 0 && (
               <div className="mt-3">
-                <p className="text-sm font-medium text-gray-700 mb-2">New Images:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">New Images ({imageFiles.length}):</p>
                 <div className="flex flex-wrap gap-2">
                   {imageFiles.map((file, idx) => (
-                    <div key={idx} className="w-20 h-20 bg-gray-100 rounded overflow-hidden">
+                    <div key={idx} className="w-20 h-20 bg-gray-100 rounded overflow-hidden border">
                       <img
                         src={URL.createObjectURL(file)}
                         alt="Preview"

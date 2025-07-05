@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
+import { useCartStore } from './cartStore';
 
 interface AuthStore {
   user: User | null;
@@ -22,7 +23,6 @@ export const useAuthStore = create<AuthStore>()(
 
       register: async (email: string, password: string, name?: string) => {
         try {
-          // Check if this is the admin email
           const isAdmin = email === 'tigraytip@gmail.com';
           
           const { data, error } = await supabase.auth.signUp({
@@ -50,6 +50,11 @@ export const useAuthStore = create<AuthStore>()(
             };
             
             set({ user: userData, isAuthenticated: true });
+            
+            // Load cart from server after login
+            setTimeout(() => {
+              useCartStore.getState().loadCartFromServer();
+            }, 100);
           }
           
           return { success: true };
@@ -79,6 +84,11 @@ export const useAuthStore = create<AuthStore>()(
             };
             
             set({ user: userData, isAuthenticated: true });
+            
+            // Load cart from server after login
+            setTimeout(() => {
+              useCartStore.getState().loadCartFromServer();
+            }, 100);
           }
           
           return { success: true };
@@ -148,6 +158,8 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       logout: () => {
+        // Clear cart when logging out
+        useCartStore.getState().clearCart();
         set({ user: null, isAuthenticated: false });
         supabase.auth.signOut();
       },
