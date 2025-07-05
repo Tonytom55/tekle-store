@@ -20,19 +20,19 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
-                Discover Amazing Products
-                <span className="block text-yellow-300">At Unbeatable Prices</span>
+                Welcome to Our Store
+                <span className="block text-yellow-300">Quality Products for You</span>
               </h1>
               <p className="text-xl text-blue-100 leading-relaxed">
-                Shop from our curated collection of premium products sourced from trusted suppliers worldwide. 
-                Quality guaranteed, delivered to your door.
+                Browse our carefully selected collection of premium products. 
+                Quality guaranteed, delivered to your door with excellent customer service.
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link
                   to="/products"
                   className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  Shop Now
+                  Browse Products
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </div>
@@ -82,7 +82,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">All Products</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Products</h2>
               <p className="text-lg text-gray-600">Discover our complete collection</p>
             </div>
             <Link
