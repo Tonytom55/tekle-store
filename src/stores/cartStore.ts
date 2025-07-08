@@ -45,8 +45,10 @@ export const useCartStore = create<CartStore>()(
             newItems = [...state.items, cartItem];
           }
           
-          // Sync with server for authenticated users
-          get().syncCartWithServer();
+          // Sync with server for authenticated users (async)
+          setTimeout(() => {
+            get().syncCartWithServer();
+          }, 0);
           
           return { items: newItems };
         });

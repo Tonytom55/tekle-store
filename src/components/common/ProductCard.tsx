@@ -21,11 +21,6 @@ export default function ProductCard({ product, showQuickActions = true }: Produc
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isAuthenticated) {
-      toast.error('Please register or login to add items to cart');
-      return;
-    }
-    
     addItem(product);
     toast.success('Added to cart!');
   };
